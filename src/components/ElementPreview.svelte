@@ -102,7 +102,7 @@
 
 <style lang="postcss">
 	.dots {
-		background-image: radial-gradient(theme(colors.stone.300) 1px, transparent 0);
+		background-image: radial-gradient(theme(colors.stone.700) 1px, transparent 0);
 		background-size: 15px 15px;
 		background-position: -5px -5px;
 	}
