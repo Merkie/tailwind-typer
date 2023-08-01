@@ -5,20 +5,22 @@
 	import TypingWindow from '$components/TypingWindow.svelte';
 	import ElementPreview from '$components/ElementPreview.svelte';
 	import Stats from '$components/Stats.svelte';
-	import { components, type ComponentObject } from '$lib/components';
 	import { makeRandomSelection } from '$lib/utils';
+	import { elements } from '$lib/elements';
 
+	// Stores
+	// TODO: Move to new file
 	const currentType = writable('');
 	const typingQueue = writable('');
 	const finishedTyping: Writable<string[]> = writable([]);
 
+	// App state
+	let selectedElement = makeRandomSelection(elements);
 	let hasTyped = false;
 	let mistakes = 0;
-
 	let typingTextColor = 'text-stone-200';
-
-	let componentToBeTyped: ComponentObject;
 	let refreshing = false;
+	let displayedTutorial = false;
 
 	// Bottom Stopwatch Timer
 	let timerRunning = false;
@@ -37,75 +39,97 @@
 		}
 	};
 
-	// Refresh State + Component
-	const refreshComponent = async () => {
-		console.log(188);
+	const handleKeypress = async (e: KeyboardEvent) => {
+		// Start the timer when the user starts typing
+		if (!hasTyped) {
+			toggleTimer();
+			hasTyped = true;
+			displayedTutorial = true;
+		}
+
+		// If the key pressed is correct... (the next one in line)
+		if (e.key === $typingQueue[$currentType.length]) {
+			// append the key to the current type
+			$currentType = $typingQueue.slice(0, $currentType.length + 1);
+
+			// If the user is done typing the entire class list...
+			if ($currentType === $typingQueue) {
+				// Add the class list onto the finishedTyping array and reset some state
+				$finishedTyping = [...$finishedTyping, $typingQueue];
+				$typingQueue = '';
+				$currentType = '';
+			}
+		} else {
+			mistakes++; // Add a mistake
+
+			// Make the white text flash red
+			// TODO: handle this better
+			typingTextColor = 'text-red-300';
+			await new Promise((r) => setTimeout(r, 100));
+			typingTextColor = 'text-stone-200';
+		}
+	};
+
+	onMount(async () => {
+		window.addEventListener('keypress', handleKeypress);
+	});
+
+	const resetStateAndRefreshComponent = async () => {
 		refreshing = true;
-		secondsFreeze = seconds;
+		secondsFreeze = seconds; // Freeze the stopwatch
 
 		await new Promise((r) => setTimeout(r, 3000));
-
 		toggleTimer();
 
-		componentToBeTyped = makeRandomSelection(components);
+		// Get a new random element
+		selectedElement = makeRandomSelection(elements);
+
+		/// Reset stores
+		$typingQueue = '';
+		$currentType = '';
+		$finishedTyping = [];
+
+		// Reset local state
 		seconds = 0;
 		mistakes = 0;
 		hasTyped = false;
 		refreshing = false;
 	};
 
-	onMount(async () => {
-		// Get component on page load
-		componentToBeTyped = makeRandomSelection(components);
-
-		window.addEventListener('keypress', async (e) => {
-			if (!hasTyped) {
-				toggleTimer();
-				hasTyped = true;
-			}
-			if (e.key === $typingQueue[$currentType.length]) {
-				$currentType = $typingQueue.slice(0, $currentType.length + 1);
-				if ($currentType === $typingQueue) {
-					$finishedTyping = [...$finishedTyping, $typingQueue];
-					$typingQueue = '';
-					$currentType = '';
-				}
-			} else {
-				mistakes++;
-				typingTextColor = 'text-red-300';
-				await new Promise((r) => setTimeout(r, 100));
-				typingTextColor = 'text-stone-200';
-			}
-		});
-	});
+	$: {
+		if (
+			!refreshing &&
+			$typingQueue === '' &&
+			$finishedTyping.length === Object.keys(selectedElement.classes).length
+		)
+			resetStateAndRefreshComponent();
+	}
 </script>
 
 <main class="flex h-screen w-screen flex-col items-center justify-center gap-8">
 	{#if !refreshing}
-		<TypingWindow
-			{hasTyped}
-			{currentType}
-			{typingQueue}
-			{finishedTyping}
-			{typingTextColor}
-			classesLength={1 +
-				(componentToBeTyped?.children?.filter((child) => child.classes).length || 0)}
-		/>
+		<div in:scale>
+			<TypingWindow
+				{handleKeypress}
+				{displayedTutorial}
+				{hasTyped}
+				{currentType}
+				{typingQueue}
+				{finishedTyping}
+				{typingTextColor}
+				classesLength={Object.keys(selectedElement.classes).length}
+			/>
+		</div>
 	{:else}
-		<p class="text-sm">Nice work! Refreshing Component in 3 seconds...</p>
+		<p in:scale class="text-sm">Nice work! Refreshing Component in 3 seconds...</p>
 	{/if}
 
 	<div class="w-screen max-w-[400px]">
 		<p class="mb-2 text-sm text-stone-500">Element preview:</p>
-		{#if componentToBeTyped}
-			<ElementPreview
-				{componentToBeTyped}
-				{typingQueue}
-				{currentType}
-				{refreshComponent}
-				{finishedTyping}
-			/>
-		{/if}
+
+		{#key refreshing}
+			<ElementPreview {selectedElement} {typingQueue} {currentType} {finishedTyping} />
+		{/key}
 	</div>
 
 	<Stats {seconds} {secondsFreeze} {mistakes} {refreshing} />

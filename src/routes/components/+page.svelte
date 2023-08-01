@@ -1,5 +1,5 @@
-<main class="mx-auto flex h-screen w-screen max-w-[400px] flex-col">
-	<p class="mb-4 mt-8 text-2xl">Components:</p>
+<main class="mx-auto flex h-screen w-screen max-w-[600px] flex-col">
+	<p class="mb-4 mt-16 text-2xl text-stone-200">Components:</p>
 	<div class="flex w-full flex-wrap justify-evenly gap-4">
 		<button
 			class="rounded-md border border-orange-500 bg-orange-600 p-2 px-8 font-medium uppercase text-orange-50 hover:brightness-110 active:brightness-90"
