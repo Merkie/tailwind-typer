@@ -4,48 +4,34 @@
 	import TypingWindow from '$components/TypingWindow.svelte';
 	import ElementPreview from '$components/ElementPreview.svelte';
 	import Stats from '$components/Stats.svelte';
-	import { makeRandomSelection } from '$lib/utils';
-	import { elements } from '$lib/elements';
-	import LookHere from '$components/svgs/LookHere.svelte';
-	import Arrow from '$components/svgs/Arrow.svelte';
-	import TypeThis from '$components/svgs/TypeThis.svelte';
-	import { CurrentUserInput, FinishedStrings, StringToType } from '$lib/stores';
 	import TypeThisTutorialArrow from '$components/TypeThisTutorialArrow.svelte';
 	import LookHereTutorialArrow from '$components/LookHereTutorialArrow.svelte';
+	import { CurrentUserInput, FinishedStrings, StringToType } from '$lib/stores';
+	import { clearTimer, startTimer, stopTimer, ElapsedTime } from '$lib/timer';
+	import { makeRandomSelection } from '$lib/utils';
+	import { elements } from '$lib/elements';
+	import RefreshMessage from '$components/RefreshMessage.svelte';
 
 	// App state
-	let selectedElement = makeRandomSelection(elements);
+	let selectedElement: {
+		html: string;
+		classes: Record<string, string>;
+	} | null = null;
+	let mistakeCount = 0;
 	let hasTyped = false;
-	let mistakes = 0;
-	let typingTextColor = 'text-stone-200';
 	let refreshing = false;
 	let displayedTutorial = false;
 	let displayTutorialArrows = true;
-
-	// Bottom Stopwatch Timer
-	let timerRunning = false;
-	let seconds = 0;
-	let secondsFreeze = 0;
-	let interval: number;
-	const toggleTimer = () => {
-		if (timerRunning) {
-			clearInterval(interval);
-			timerRunning = false;
-		} else {
-			interval = setInterval(() => {
-				seconds++;
-			}, 10);
-			timerRunning = true;
-		}
-	};
+	let typingTextColor = 'text-stone-200'; // TODO: get rid of this
 
 	// Key press listener on the window
 	// This will also capture the keyboard events from <input /> tags
 	onMount(async () => {
+		selectedElement = makeRandomSelection(elements);
 		window.addEventListener('keypress', async (e: KeyboardEvent) => {
 			// Start the timer when the user starts typing
 			if (!hasTyped) {
-				toggleTimer();
+				startTimer();
 				hasTyped = true;
 				displayedTutorial = true;
 			}
@@ -63,7 +49,7 @@
 					$CurrentUserInput = '';
 				}
 			} else {
-				mistakes++; // Add a mistake
+				mistakeCount++; // Add a mistake
 
 				// Make the white text flash red
 				// TODO: handle this better
@@ -76,10 +62,10 @@
 
 	const resetStateAndRefreshComponent = async () => {
 		refreshing = true;
-		secondsFreeze = seconds; // Freeze the stopwatch
+		stopTimer();
 
 		await new Promise((r) => setTimeout(r, 3000));
-		toggleTimer();
+		clearTimer();
 
 		// Get a new random element
 		selectedElement = makeRandomSelection(elements);
@@ -90,27 +76,29 @@
 		$FinishedStrings = [];
 
 		// Reset local state
-		seconds = 0;
-		mistakes = 0;
+		mistakeCount = 0;
 		hasTyped = false;
 		refreshing = false;
 	};
 
+	// Controls if the tutorial arrows should be displayed
 	$: displayTutorialArrows = !hasTyped && $StringToType.length > 1 && !displayedTutorial;
 
 	$: {
-		if (
-			!refreshing &&
-			$StringToType === '' &&
-			$FinishedStrings.length === Object.keys(selectedElement.classes).length
-		)
-			resetStateAndRefreshComponent();
+		// If the user has finished typing all the classes...
+		if (selectedElement)
+			if (
+				!refreshing &&
+				$StringToType === '' &&
+				$FinishedStrings.length === Object.keys(selectedElement.classes).length
+			)
+				resetStateAndRefreshComponent();
 	}
 </script>
 
 <main class="flex h-screen w-screen flex-col items-center justify-center gap-8">
 	<div class="relative">
-		{#if !refreshing}
+		{#if !refreshing && selectedElement}
 			<div in:scale>
 				<TypingWindow
 					{typingTextColor}
@@ -118,7 +106,9 @@
 				/>
 			</div>
 		{:else}
-			<p in:scale class="text-sm">Nice work! Refreshing Component in 3 seconds...</p>
+			<div in:scale>
+				<RefreshMessage />
+			</div>
 		{/if}
 		{#if displayTutorialArrows}
 			<TypeThisTutorialArrow />
@@ -127,13 +117,15 @@
 
 	<div class="relative w-screen max-w-[400px]">
 		<p class="mb-2 text-sm text-stone-500">Element preview:</p>
-		{#key refreshing}
-			<ElementPreview {selectedElement} />
-		{/key}
+		{#if selectedElement}
+			{#key refreshing}
+				<ElementPreview {selectedElement} />
+			{/key}
+		{/if}
 		{#if displayTutorialArrows}
 			<LookHereTutorialArrow />
 		{/if}
 	</div>
 
-	<Stats {seconds} {secondsFreeze} {mistakes} {refreshing} />
+	<Stats {mistakeCount} />
 </main>

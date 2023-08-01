@@ -1,12 +1,8 @@
 <script lang="ts">
-	export let mistakes: number;
-	export let refreshing: boolean;
-	export let seconds: number;
-	export let secondsFreeze: number;
+	import { ElapsedTime } from '$lib/timer';
+	export let mistakeCount: number;
 </script>
 
-<p class="text-sm text-stone-500">
-	Mistakes: {mistakes} • Time: {`${((refreshing ? secondsFreeze : seconds) / 100).toFixed(
-		2
-	)}`.replace('.', ':')}
+<p class="w-full max-w-[400px] text-sm text-stone-500">
+	Mistakes: {mistakeCount} • Time: {`${($ElapsedTime / 1000).toFixed(2)}`.replace('.', ':')}
 </p>
