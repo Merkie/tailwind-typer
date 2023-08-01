@@ -1,9 +1,6 @@
 <script lang="ts">
-	import type { Writable } from 'svelte/store';
+	import { CurrentUserInput, FinishedStrings, StringToType } from '$lib/stores';
 
-	export let currentType: Writable<string>;
-	export let typingQueue: Writable<string>;
-	export let finishedTyping: Writable<string[]>;
 	export let selectedElement: { html: string; classes: Record<string, string> };
 
 	let renderHtml: string;
@@ -16,7 +13,7 @@
 		const classes = Object.keys(selectedElement.classes);
 
 		classes.forEach((className) => {
-			const USER_FINISHED_TYPING_CLASSES = $finishedTyping.includes(
+			const USER_FINISHED_TYPING_CLASSES = $FinishedStrings.includes(
 				selectedElement.classes[className]
 			);
 
@@ -27,17 +24,17 @@
 					`class="${selectedElement.classes[className]}"`
 				);
 			} else {
-				const TYPING_QUEUE_EMPTY = !$typingQueue || $typingQueue.length < 1;
+				const TYPING_QUEUE_EMPTY = !$StringToType || $StringToType.length < 1;
 				if (TYPING_QUEUE_EMPTY) {
 					// Set the typing queue to the next class list in the array
 					cursorElement = className;
-					$typingQueue = selectedElement.classes[className];
+					$StringToType = selectedElement.classes[className];
 				}
 
 				// If the this element is the one the user is working on...
 				if (className === cursorElement) {
 					// Replace the class value with whatever the user has typed so far, this updates the classes live.
-					renderHtml = renderHtml.replace(`class="${className}"`, `class="${$currentType}"`);
+					renderHtml = renderHtml.replace(`class="${className}"`, `class="${$CurrentUserInput}"`);
 				} else {
 					// Remove the class attribute from the element so it just displays without styling.
 					renderHtml = renderHtml.replace(`class="${className}"`, ``);
@@ -49,14 +46,14 @@
 	// Reactive Function / Effect
 	// Rerenders the component whenever $currentType or $typingQueue changes
 	$: {
-		$currentType;
-		$typingQueue;
+		$CurrentUserInput;
+		$StringToType;
 		renderComponent();
 	}
 </script>
 
 <div
-	class="dots grid w-full min-w-[400px] place-items-center rounded-md border border-stone-800 bg-stone-900 p-4 py-8"
+	class="dots relative grid w-full min-w-[400px] place-items-center rounded-md border border-stone-800 bg-stone-900 p-4 py-8"
 >
 	{@html renderHtml}
 </div>

@@ -58,7 +58,7 @@ export const elements = [
 			'input container':
 				'flex rounded-md border border-orange-300 bg-orange-50 text-orange-600 ring-orange-500 focus-within:ring-2',
 			'icon container':
-				'rounded-l-md border-r border-orange-300 bg-orange-100 p-2 px-4 text-orange-500',
+				'grid place-items-center rounded-l-md border-r border-orange-300 bg-orange-100 p-2 px-4 text-orange-500',
 			input: 'min-w-[250px] bg-transparent p-2 outline-none'
 		}
 	},
